@@ -50,23 +50,23 @@ public class KeycloakTokenProvider {
 
     /**
      * Return GitHub access token based on Keycloak token
-     * 
+     *
      * <p>
-     * Note: valid response from keycloak endpoint: 
+     * Note: valid response from keycloak endpoint:
      *       access_token=token&scope=scope&token_type=bearer
      * </p>
-     * 
+     *
      * @param keycloakToken
-     * 
-     * @return GitHub access token 
-     * @throws IOException 
-     * @throws BadRequestException 
-     * @throws ConflictException 
-     * @throws NotFoundException 
-     * @throws ForbiddenException 
-     * @throws UnauthorizedException 
-     * @throws ServerException 
-     * 
+     *
+     * @return GitHub access token
+     * @throws IOException
+     * @throws BadRequestException
+     * @throws ConflictException
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     * @throws UnauthorizedException
+     * @throws ServerException
+     *
      */
     public String obtainGitHubToken(String keycloakToken) throws ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException, BadRequestException, IOException {
         String responseBody = getResponseBody(gitHubEndpoint, keycloakToken);
@@ -77,29 +77,33 @@ public class KeycloakTokenProvider {
 
     /**
      * Return OpenShift online token based on Keycloak token
-     * 
+     *
      * <p>
-     * Note: valid response from keycloak endpoint: 
+     * Note: valid response from keycloak endpoint:
      *       {"access_token":"token","expires_in":86400,"scope":"user:full","token_type":"Bearer"}
      * </p>
-     * 
+     *
      * @param  keycloakToken
-     * 
-     * @return OpenShift online token 
-     * @throws BadRequestException 
-     * @throws ConflictException 
-     * @throws NotFoundException 
-     * @throws ForbiddenException 
-     * @throws UnauthorizedException 
-     * @throws ServerException 
-     * 
+     *
+     * @return OpenShift online token
+     * @throws BadRequestException
+     * @throws ConflictException
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     * @throws UnauthorizedException
+     * @throws ServerException
+     *
      */
     public String obtainOsoToken(String keycloakToken) throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException, BadRequestException {
         String responseBody = getResponseBody(openShiftEndpoint, keycloakToken);
         ObjectMapper mapper = new ObjectMapper();
         JsonNode json = mapper.readTree(responseBody);
         JsonNode token = json.get(ACCESS_TOKEN);
-        return token.asText();
+        if (token != null) {
+            return token.asText();
+        } else {
+            return null;
+        }
     }
 
     private String getResponseBody(final String endpoint, final String keycloakToken) throws ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException, BadRequestException, IOException {

@@ -352,7 +352,6 @@
                             <groupId>org.eclipse.che.plugin</groupId>
                         </exclusion>
                     </exclusions>
-                    
                 </dependency>
             </dependencies>
         </profile>
