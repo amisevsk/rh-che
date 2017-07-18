@@ -183,6 +183,7 @@ public final class KeycloakUserValidator {
     private String getOpenShiftProjectOwner() {
         try(OpenShiftClient client = new DefaultOpenShiftClient()) {
             String namespace = client.getNamespace();
+            LOG.info("MATCHER RAW: {}", namespace);
             Matcher nameMatcher = nameExtractor.matcher(namespace);
             if (nameMatcher.matches()) {
                 LOG.info("MATCHER MATCHED: {}", nameMatcher.group(1));
