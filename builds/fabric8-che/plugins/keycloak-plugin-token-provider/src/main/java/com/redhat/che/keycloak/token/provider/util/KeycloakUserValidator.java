@@ -17,6 +17,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -30,9 +32,6 @@ import org.eclipse.che.api.core.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -54,10 +53,10 @@ import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 public final class KeycloakUserValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(KeycloakUserValidator.class);
-    private static final String ACCESS_TOKEN = "access_token";
     private static final int CACHE_TIMEOUT_MINUTES = 10;
 
     private final KeycloakTokenProvider keycloakTokenProvider;
+    private final Pattern nameExtractor = Pattern.compile("(\\S*)-che");
 
     /**
      * Cache that stores mappings from keycloak token to OpenShift token. Timeout is
@@ -103,7 +102,7 @@ public final class KeycloakUserValidator {
             LOG.info("Received request with null or empty auth value. Returning false");
             return false;
         }
-        
+
         LOG.debug("Keycloak token = {}", keycloakToken);
 
         String projectOwner = getOpenShiftProjectOwner();
@@ -121,9 +120,9 @@ public final class KeycloakUserValidator {
             if (isNullOrEmpty(openShiftToken)) {
                 return false;
             }
-            
+
             LOG.debug("Openshift token = {}", openShiftToken);
-            String openShiftUser = getOpenShiftUser(openShiftToken);
+            String openShiftUser = getOpenShiftProjectName(openShiftToken);
             if (isNullOrEmpty(openShiftUser)) {
                 return false;
             }
@@ -166,14 +165,10 @@ public final class KeycloakUserValidator {
      *
      * @see UserLoader
      */
-    private String getOpenShiftUser(String openShiftToken) {
+    private String getOpenShiftProjectName(String openShiftToken) {
         try {
             String currentUsername = openShiftTokenToUserCache.get(openShiftToken);
-            if (currentUsername.contains("@")) {
-                // Some usernames are email addresses
-                currentUsername = currentUsername.split("@")[0];
-            }
-            return currentUsername;
+            return OpenShiftUserToProjectNameConverter.getProjectName(currentUsername);
         } catch (ExecutionException e) {
             LOG.error("Exception while getting user:", e);
         }
@@ -187,8 +182,15 @@ public final class KeycloakUserValidator {
      */
     private String getOpenShiftProjectOwner() {
         try(OpenShiftClient client = new DefaultOpenShiftClient()) {
-            String namespace = client.getNamespace().split("-")[0];
-            return namespace;
+            String namespace = client.getNamespace();
+            Matcher nameMatcher = nameExtractor.matcher(namespace);
+            if (nameMatcher.matches()) {
+                LOG.info("MATCHER MATCHED: {}", nameMatcher.group(1));
+                return nameMatcher.group(1);
+            } else {
+                LOG.error("MATCHER DID NOT MATCH");
+                return "";
+            }
         }
     }
 
