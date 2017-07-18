@@ -23,6 +23,7 @@ public class OpenShiftUserToProjectNameConverter {
             projectName = projectName.split("@")[0];
         }
         projectName = projectName.replaceAll("\\.", "-");
+        projectName = projectName.replaceAll("+", "-"); //TODO: not sure if necessary
 
         LOG.info("CONVERTER CONVERTED: {}", projectName);
         return projectName;
