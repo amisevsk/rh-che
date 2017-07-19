@@ -56,6 +56,7 @@ public final class KeycloakUserValidator {
     private static final int CACHE_TIMEOUT_MINUTES = 10;
 
     private final KeycloakTokenProvider keycloakTokenProvider;
+    /** Pattern used to obtain project name from OpenShift namespace */
     private final Pattern nameExtractor = Pattern.compile("(\\S*)-che");
 
     /**
@@ -105,7 +106,7 @@ public final class KeycloakUserValidator {
 
         LOG.debug("Keycloak token = {}", keycloakToken);
 
-        String projectOwner = getOpenShiftProjectOwner();
+        String projectOwner = getOpenShiftProjectName();
         if ("eclipse".equals(projectOwner)) {
             LOG.info("We are running in a Development Minishift environment => don't check user name.");
             return true;
@@ -127,7 +128,7 @@ public final class KeycloakUserValidator {
                 return false;
             }
             LOG.debug("Openshift user = {}", openShiftUser);
-            return openShiftUser.equals(getOpenShiftProjectOwner());
+            return openShiftUser.equals(getOpenShiftProjectName());
         }
     }
 
@@ -176,20 +177,20 @@ public final class KeycloakUserValidator {
     }
 
     /**
-     * Get the owner of the current OpenShift namespace. Note that usernames may, in some cases,
-     * be email addresses.
-     * @return the username, as specified by OpenShift
+     * Get the project name in the current OpenShift namespace.
+     *
+     * @return the project name, as specified by OpenShift
      */
-    private String getOpenShiftProjectOwner() {
+    private String getOpenShiftProjectName() {
         try(OpenShiftClient client = new DefaultOpenShiftClient()) {
             String namespace = client.getNamespace();
-            LOG.info("MATCHER RAW: {}", namespace);
+            LOG.debug("Getting project name from namespace: {}", namespace);
             Matcher nameMatcher = nameExtractor.matcher(namespace);
             if (nameMatcher.matches()) {
-                LOG.info("MATCHER MATCHED: {}", nameMatcher.group(1));
+                LOG.debug("Got project name: {}", nameMatcher.group(1));
                 return nameMatcher.group(1);
             } else {
-                LOG.error("MATCHER DID NOT MATCH");
+                LOG.error("Could not get project name from namespace");
                 return "";
             }
         }
