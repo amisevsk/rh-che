@@ -106,7 +106,7 @@ public final class KeycloakUserValidator {
 
         LOG.debug("Keycloak token = {}", keycloakToken);
 
-        String projectOwner = getOpenShiftProjectName();
+        String projectOwner = getCurrentOpenShiftProjectName();
         if ("eclipse".equals(projectOwner)) {
             LOG.info("We are running in a Development Minishift environment => don't check user name.");
             return true;
@@ -123,12 +123,12 @@ public final class KeycloakUserValidator {
             }
 
             LOG.debug("Openshift token = {}", openShiftToken);
-            String openShiftUser = getOpenShiftProjectName(openShiftToken);
+            String openShiftUser = getOpenShiftProjectNameFromToken(openShiftToken);
             if (isNullOrEmpty(openShiftUser)) {
                 return false;
             }
             LOG.debug("Openshift user = {}", openShiftUser);
-            return openShiftUser.equals(getOpenShiftProjectName());
+            return openShiftUser.equals(getCurrentOpenShiftProjectName());
         }
     }
 
@@ -166,10 +166,10 @@ public final class KeycloakUserValidator {
      *
      * @see UserLoader
      */
-    private String getOpenShiftProjectName(String openShiftToken) {
+    private String getOpenShiftProjectNameFromToken(String openShiftToken) {
         try {
             String currentUsername = openShiftTokenToUserCache.get(openShiftToken);
-            return OpenShiftUserToProjectNameConverter.getProjectName(currentUsername);
+            return OpenShiftUserToProjectNameConverter.getProjectNameFromUsername(currentUsername);
         } catch (ExecutionException e) {
             LOG.error("Exception while getting user:", e);
         }
@@ -181,7 +181,7 @@ public final class KeycloakUserValidator {
      *
      * @return the project name, as specified by OpenShift
      */
-    private String getOpenShiftProjectName() {
+    private String getCurrentOpenShiftProjectName() {
         try(OpenShiftClient client = new DefaultOpenShiftClient()) {
             String namespace = client.getNamespace();
             LOG.debug("Getting project name from namespace: {}", namespace);

@@ -25,7 +25,7 @@ public class OpenShiftUserToProjectNameConverter {
      * @param openShiftUsername The openshift username
      * @return the expected project name
      */
-    public static String getProjectName(String openShiftUsername) {
+    public static String getProjectNameFromUsername(String openShiftUsername) {
         String projectName = openShiftUsername;
         LOG.debug("Getting project name from openshift user: {}", projectName);
         if (projectName.contains("@")) {
@@ -33,7 +33,7 @@ public class OpenShiftUserToProjectNameConverter {
             projectName = projectName.split("@")[0];
         }
         projectName = projectName.replaceAll("\\.", "-");
-        projectName = projectName.replaceAll("+", "-");
+        projectName = projectName.replaceAll("\\+", "-");
 
         LOG.debug("Got project name: {}", projectName);
         return projectName;
