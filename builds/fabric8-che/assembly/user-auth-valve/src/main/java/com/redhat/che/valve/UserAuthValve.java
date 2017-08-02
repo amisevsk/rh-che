@@ -43,11 +43,27 @@ import org.keycloak.adapters.tomcat.KeycloakAuthenticatorValve;
 public class UserAuthValve extends KeycloakAuthenticatorValve {
 
     private static final Log LOG = LogFactory.getLog(UserAuthValve.class);
-    private static final String USER_VALIDATOR_ENDPOINT = "http://che-host:8080/api/token/user";
+
+    /** Name of env var that holds address of Che Host on the cluster */
+    private static final String CHE_API_ENV_VAR = "CHE_API";
     private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String KEYCLOAK_SETTINGS_ENDPOINT = "http://che-host:8080/api/keycloak/settings";
     private static final Pattern DISABLED_SETTING_PATTERN = Pattern.compile(".*\"che\\.keycloak\\.disabled\":\"([^ \"]+)\".*");
-    
+    private static final String USER_VALIDATOR_API_PATH = "/api/token/user";
+    private static final String KEYCLOAK_SETTINGS_API_PATH = "/api/keycloak/settings";
+
+    private static final String USER_VALIDATOR_ENDPOINT;
+    private static final String KEYCLOAK_SETTINGS_ENDPOINT;
+    static {
+        String cheApiEndpoint = System.getenv(CHE_API_ENV_VAR);
+        if (cheApiEndpoint != null) {
+            cheApiEndpoint = cheApiEndpoint.replaceAll("/wsmaster/api", "");
+        } else {
+            cheApiEndpoint= "http://che-host:8080";
+        }
+        USER_VALIDATOR_ENDPOINT = cheApiEndpoint + USER_VALIDATOR_API_PATH;
+        KEYCLOAK_SETTINGS_ENDPOINT = cheApiEndpoint + KEYCLOAK_SETTINGS_API_PATH;
+    }
+
     private boolean keycloakDisabledRetrieved = false;
     private boolean keycloakDisabled = false;
     
