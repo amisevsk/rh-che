@@ -38,6 +38,12 @@ if [ -z ${CHE_OPENSHIFT_PROJECT+x} ]; then echo "Env var CHE_OPENSHIFT_PROJECT i
 # if [ ! -d "${FABRIC8_ONLINE_PATH}"apps/che/src/main/fabric8 ]; then echo "Folder ${FABRIC8_ONLINE_PATH}apps/che/src/main/fabric8 does not exists. Aborting"; exit 1; fi 
 
 echo "# oc login ${OPENSHIFT_ENDPOINT}..."
+oc login -u system:admin
+if ! oc get project "test-namespace" &> /dev/null; then
+  echo "# Creating test-namespace"
+  oc new-project "test-namespace"
+fi
+
 oc login ${OPENSHIFT_ENDPOINT} -u ${OPENSHIFT_USERNAME} -p ${OPENSHIFT_PASSWORD} > /dev/null
 
 # Check if the project exists othewise create it
@@ -45,7 +51,6 @@ if ! oc get project ${CHE_OPENSHIFT_PROJECT} &> /dev/null; then
   echo "# Creating project"
   oc new-project ${CHE_OPENSHIFT_PROJECT}
 fi
-
 oc project ${CHE_OPENSHIFT_PROJECT}
 
 # Deploy configmaps
@@ -86,11 +91,12 @@ oc create configmap che \
 #   https://github.com/fabric8io/gofabric8#getting-started
 echo "# Create pvc..."
 # TODO check if the pvc exist
-oc apply -f ${FABRIC8_ONLINE_PATH}apps/che/src/main/fabric8/data-pvc.yml
-oc apply -f ${FABRIC8_ONLINE_PATH}apps/che/src/main/fabric8/workspace-pvc.yml
 oc login ${OPENSHIFT_ENDPOINT} -u system:admin -n ${CHE_OPENSHIFT_PROJECT}  > /dev/null
+oc apply -f ${FABRIC8_ONLINE_PATH}apps/che/src/main/fabric8/data-pvc.yml
+oc apply -f ${FABRIC8_ONLINE_PATH}apps/che/src/main/fabric8/workspace-pvc.yml -n test-namespace
 # TODO check if pv exists (or if pvc has been bounded)
 gofabric8 volumes
+gofabric8 volumes --namespace "test-namespace"
 oc login ${OPENSHIFT_ENDPOINT} -u ${OPENSHIFT_USERNAME} -p ${OPENSHIFT_PASSWORD} -n ${CHE_OPENSHIFT_PROJECT}  > /dev/null
 
 # Wait a few seconds for the PVCs to be bound to a PV before the starting the pods
@@ -124,10 +130,10 @@ metadata:
 $(cat ${FABRIC8_ONLINE_PATH}apps/che/src/main/fabric8/deployment.yml)
     metadata:
       labels:
-        project: che
+        app: che
         provider: fabric8
   selector:
-    project: che
+    app: che
     provider: fabric8
 " |  \
 sed "s/image:.*/image: \"${CHE_IMAGE_REPO}:${CHE_IMAGE_TAG}\"/g" | \
