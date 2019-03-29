@@ -49,6 +49,8 @@ public class Fabric8WsMasterModule extends AbstractModule {
         },
         disableAuthenticationInterceptor);
 
+    bind(com.redhat.che.multitenant.timing.TimingLoggerListener.class).asEagerSingleton();
+
     final Multibinder<MachineAuthenticatedResource> machineAuthenticatedResources =
         Multibinder.newSetBinder(binder(), MachineAuthenticatedResource.class);
     machineAuthenticatedResources
